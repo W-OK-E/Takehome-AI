@@ -35,3 +35,6 @@ data/boq_files/*.xlsx
 
 # Candidate outputs
 predictions.json
+
+# Embedding cache (thousands of small files, regenerable from ../dataset)
+models/cache/
