@@ -38,3 +38,7 @@ predictions.json
 
 # Embedding cache (thousands of small files, regenerable from ../dataset)
 models/cache/
+
+# Raw sentence-transformers checkpoint (465MB, not Core ML - see
+# src/export_coreml.py; regenerable from HuggingFace hub via models/config.json)
+models/embedder/

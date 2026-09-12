@@ -6,3 +6,9 @@ pytest>=8.0.0
 scikit-learn>=1.4.0
 joblib>=1.3.0
 sentence-transformers>=3.0.0
+coremltools>=8.0.0
+# Pinned: coremltools 9.0 explicitly targets torch<=2.7.0 for its PyTorch
+# conversion path; newer torch builds (tested up to 2.14) are not supported
+# and behave the same for the BERT-tracing issue documented in
+# src/export_coreml.py, so there's no reason to drift past what's verified.
+torch==2.7.0
