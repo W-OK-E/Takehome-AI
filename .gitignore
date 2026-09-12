@@ -30,8 +30,6 @@ src/.env
 # Internal files (not shared with candidates)
 _internal/
 
-# Data files (provided separately as zip)
-data/boq_files/*.xlsx
 
 # Candidate outputs
 predictions.json
