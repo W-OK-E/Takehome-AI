@@ -1,0 +1,20 @@
+{
+  "backbone": "e5",
+  "model_name": "intfloat/multilingual-e5-small",
+  "embedding_dim": 384,
+  "labels": [
+    "Site Setup",
+    "Demolition",
+    "Earthworks",
+    "Retaining Structures",
+    "Foundations",
+    "Ground Floor Slab",
+    "RC Structure",
+    "Steel Structure",
+    "Timber Structure",
+    "Masonry",
+    "Misc / Other",
+    "Structural Reinforcement"
+  ],
+  "num_classes": 12
+}

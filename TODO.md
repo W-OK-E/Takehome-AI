@@ -13,7 +13,7 @@
 - [x] `src/data.py` - load 3 fold files, clean/filter to single-macro rows, dedupe, group-aware 3-fold split
 - [x] `tests/test_data.py` - unit tests for cleaning/dedup/split correctness (17 tests; caught+fixed a real bug: an anchored regex was dropping ~2/3 of legitimate rows starting with punctuation)
 - [x] `src/embed.py` - multilingual embedding backbone wrapper (MiniLM-L12-v2 + multilingual-e5-small, both selectable). Verified cross-lingual property holds on real BOQ phrases (PT/EN same-meaning cosine sim 0.78-0.98 vs 0.25-0.36 for unrelated).
-- [ ] `src/train.py` - train classifier head, 3-fold CV, report accuracy/macro-F1/confusion matrix
+- [x] `src/train.py` - train classifier head, 3-fold CV, report accuracy/macro-F1/confusion matrix. Result: e5 beats MiniLM (macro-F1 0.7387 vs 0.7216); per-class F1 ranges 0.90 (Earthworks) down to 0.38 (Structural Reinforcement)/0.50 (Masonry) - tracks the rarer classes, as expected. Caught+fixed a real bug: `multi_class="multinomial"` is no longer a valid LogisticRegression param in scikit-learn 1.9.1, crashed the retrain step.
 - [ ] `src/export_coreml.py` - export backbone+head to `.mlpackage`, verify round-trip parity, report file size
 - [ ] `src/predict.py` - CLI: `load_boq_items()` -> embed -> head -> `predictions.json`
 - [ ] Fill in `NOTES.md` (approach, decisions, results, limitations)
