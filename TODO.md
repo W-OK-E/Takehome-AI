@@ -1,4 +1,7 @@
 ## Primary TODOs to complete the task:
 
-- [ ] Explore the repo
-- [ ] Understand the objective
+- [x] Explore the repo
+- [x] Understand the objective
+
+- [x] Drive link is unavailable, look for sample datasets.
+- 
