@@ -12,7 +12,7 @@
 - [x] Write and approve design spec
 - [x] `src/data.py` - load 3 fold files, clean/filter to single-macro rows, dedupe, group-aware 3-fold split
 - [x] `tests/test_data.py` - unit tests for cleaning/dedup/split correctness (17 tests; caught+fixed a real bug: an anchored regex was dropping ~2/3 of legitimate rows starting with punctuation)
-- [ ] `src/embed.py` - multilingual embedding backbone wrapper (benchmark MiniLM-L12-v2 vs multilingual-e5-small)
+- [x] `src/embed.py` - multilingual embedding backbone wrapper (MiniLM-L12-v2 + multilingual-e5-small, both selectable). Verified cross-lingual property holds on real BOQ phrases (PT/EN same-meaning cosine sim 0.78-0.98 vs 0.25-0.36 for unrelated).
 - [ ] `src/train.py` - train classifier head, 3-fold CV, report accuracy/macro-F1/confusion matrix
 - [ ] `src/export_coreml.py` - export backbone+head to `.mlpackage`, verify round-trip parity, report file size
 - [ ] `src/predict.py` - CLI: `load_boq_items()` -> embed -> head -> `predictions.json`
