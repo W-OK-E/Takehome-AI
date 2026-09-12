@@ -1,175 +1,78 @@
-# BOQ Tagging Challenge
+# BOQ Trade-Package Classifier
 
-## Background: Construction Procurement
+## Original Challenge
 
-When building a large construction project (apartment complex, office building, etc.), the work is divided among many specialized **subcontractors**:
+Assign Bill of Quantities (BOQ) line items from construction Excel files to
+the correct trade package (Groundworks, Concrete, Electrical, etc.), so
+procurement teams don't have to tag thousands of line items by hand. Output
+`predictions.json` with `file`, `sheet`, `row`, `item`, `predicted_tag` for
+each work item. Original constraints: ~4 hours, Python, OpenAI API key
+provided (GPT-4o-mini/GPT-4o).
 
-- **Groundworks contractors** handle excavation, foundations, drainage
-- **Concrete contractors** pour slabs, walls, and structural elements
-- **Electrical contractors** install wiring, panels, and fixtures
-- **Plumbing contractors** handle pipes, water systems, sanitation
-- And many more: roofing, painting, steelwork, landscaping, etc.
+## What Was Actually Built
 
-### The Problem: Organizing Work Packages
+The original held-out BOQ files were never available (the Google Drive link
+was dead), and the goal was extended: build this **without any API key**, as
+a **memory-constrained, offline-capable** classifier suitable for an eventual
+on-device (iOS / Core ML) deployment, not a cloud LLM call per line item.
 
-Before construction begins, the **preconstruction team** creates a **Bill of Quantities (BOQ)** - a detailed spreadsheet listing every work item needed:
+In place of the missing files, training uses a substitute public dataset -
+the [Portuguese Construction Dataset for AI](https://ec-3.org/publications/conference/paper/?id=EC32025_454)
+(`../dataset/`, 3 fold files, ~70k labeled BOQ line items, Portuguese). Its
+label taxonomy covers 12 structural/shell-and-core trades (no
+electrical/plumbing/painting/roofing - this dataset has no ground truth for
+those).
 
-| Description                                 | QTY | Unit |
-| ------------------------------------------- | --- | ---- |
-| Excavate foundation trenches to 600mm depth | 150 | m³  |
-| Supply and install 100mm copper pipes       | 200 | m    |
-| Paint interior walls, 2 coats emulsion      | 500 | m²  |
+**Approach:** a frozen multilingual sentence-embedding backbone
+(`multilingual-e5-small`, picked over `MiniLM-L12-v2` via 3-fold CV) feeds a
+small class-weighted logistic regression head. Frozen embeddings mean the
+same weights classify Portuguese or English text without a translation
+step, and the head is cheap enough to retrain on a laptop CPU.
 
-Each of these items must be assigned to the right **trade package** so the procurement team knows which subcontractors to send quotes to. For example:
+**Results:** mean 3-fold CV macro-F1 0.74, accuracy 0.81 (12 classes, ~9x
+class imbalance). See `NOTES.md` for the full breakdown and error analysis.
 
-- "Excavate foundation trenches" → **Groundworks**
-- "Supply and install copper pipes" → **Mechanical** (or **Plumbing**)
-- "Paint interior walls" → **Painting**
+**Core ML export:** the classifier head converts cleanly to a real
+`.mlpackage` (20KB). The embedding backbone does not - `coremltools` hits a
+tracing error on BERT-family `position_ids` handling, confirmed independent
+of torch version. Documented as a Phase 1 limitation; revisiting it is
+Phase 2, once real Mac/Xcode access exists for the Swift/iOS side.
 
-This assignment is currently done manually by quantity surveyors, reviewing hundreds or thousands of line items per project. It's time-consuming and error-prone.
+## Repo Layout
 
-### Your Task
-
-**Build an AI system that automatically assigns BOQ items to trade packages.**
-
-You'll work with real (anonymized) BOQ Excel files from construction projects. Your goal is to:
-
-1. Parse the Excel files to extract work items (rows with quantities)
-2. Build a classifier each item into the appropriate trade package
-3. Output your predictions in the required JSON format
-
-## Data
-
-### Input Files
-
-> **Note:** The BOQ data files are provided separately via Google Drive. Download them to `data/boq_files/` before starting.
-
-`data/boq_files/` contains several BOQ Excel workbooks from real construction projects. **The data is intentionally messy** - this reflects the reality of working with real-world construction documents. Each workbook may have:
-
-- Multiple sheets (tabs)
-- Various columns including descriptions, quantities, units, rates, etc.
-- Different formatting and structure per file
-- Inconsistent naming conventions
-- Missing or partial data in some rows
-
-Part of the challenge is figuring out how to handle these inconsistencies
-
-### Key Columns
-
-Most BOQ files have columns like:
-
-- **DESCRIPTION**: What work needs to be done
-- **QTY**: The quantity (items with quantities are actual work items)
-- **TAG**: Trade package assignment
-- Various pricing/costing columns
-
-Explore the files to understand the structure.
-
-### Output Format
-
-Your solution **must** output a JSON file named `predictions.json` with this exact format:
-
-```json
-[
-  {
-    "file": "project_a.xlsx",
-    "sheet": "BOQ",
-    "row": 15,
-    "item": "excavate foundation trenches to 600mm depth",
-    "predicted_tag": "Groundworks"
-  },
-  {
-    "file": "project_a.xlsx",
-    "sheet": "BOQ",
-    "row": 16,
-    "item": "concrete to foundations 300mm thick",
-    "predicted_tag": "Concrete + Formwork"
-  }
-]
+```
+src/
+  data.py           # load fold xlsx -> clean/dedupe -> group-aware 3-fold CV splits
+  embed.py          # multilingual sentence-embedding wrapper (MiniLM / e5)
+  train.py          # 3-fold CV over both backbones, trains + saves the head
+  export_coreml.py  # exports classifier head to Core ML; embedder export (partial, see above)
+  predict.py        # CLI: BOQ excel -> predictions.json
+models/
+  head.joblib, config.json          # trained classifier + chosen backbone
+  classifier_head.mlpackage         # Core ML export of the head
+docs/superpowers/specs/             # full design spec and rationale
 ```
 
-**Required fields:**
-
-- `file`: The Excel filename (string)
-- `sheet`: The sheet/tab name (string)
-- `row`: The 1-indexed row number in the Excel file (integer)
-- `item`: The description text from that row (string)
-- `predicted_tag`: Your predicted trade package (string)
-
-### Evaluation
-
-We will run your solution on **held-out Excel files** (files you haven't seen) and measure accuracy of your trade package predictions against our ground truth.
-
-## Constraints
-
-- **Time:** ~4 hours (please don't spend significantly more)
-- **API:** OpenAI API key provided (GPT-4o-mini or GPT-4o)
-- **Language:** Python
-
-## Submission
-
-1. **Fork this repository** to your own GitHub account
-2. Clone your fork and complete the challenge:
-3. Push your completed work to your forked repository
-4. Invite `Gregory-PublishAI` as a collaborator to your forked repository
-5. Email us with the link to your forked repository when ready
-
-**Your submission should include:**
-
-- Your solution code (runnable)
-- `predictions.json` for the provided development files
-- Fill in `NOTES.md` with:
-  - Your approach and reasoning
-  - Trade-offs you made
-  - Ideas for improvement if you had more time
-
-## Evaluation Criteria
-
-1. **Does it work?** - Produces valid predictions, handles the data
-2. **Approach** - How did you think about the problem?
-3. **Code quality** - Readable, maintainable, well-organized
-4. **Creativity** - Any interesting ideas or extensions?
-
-## Extensions (Optional)
-
-If you finish early and want to impress us, feel free to add any extensions you think would be valuable.
-
-## Setup (Venv)
+## Setup
 
 ```bash
-pip install -r requirements.txt
-cp .env.example .env  # Then add your API key
+uv venv .venv && source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
-## Provided Utilities
+## Running
 
-We've included some helper functions in `src/` to get you started:
-
-### `src/utils.py`
-
-- `load_boq_items(excel_path)` - Load work items from a BOQ Excel file
-- `save_predictions(predictions, output_path)` - Save predictions to JSON
-
-### `src/llm.py`
-
-- `prompt(input, model, instructions, reasoning)` - Simple OpenAI API wrapper
-
-Example usage:
-
-```python
-from src.utils import load_boq_items, save_predictions
-from src.llm import prompt
-
-# Load items from an Excel file
-items = load_boq_items("data/boq_files/project_a.xlsx")
-
-# Use OpenAI to classify
-response = prompt(
-    input="What trade would handle excavation work?",
-    instructions="You are a construction expert."
-)
+```bash
+python -m src.train                       # re-run CV + retrain the head
+python -m src.export_coreml                # re-export Core ML artifacts
+python -m src.predict data/boq_files/*.xlsx  # -> predictions.json
 ```
 
-## Questions?
+## Known Limitations
 
-Email gregory@muro.ai if you have questions about the task.
+- No ground-truth English BOQ file exists to validate against - real-world
+  accuracy on the original take-home's target files is unverified.
+- Label taxonomy is narrower than a full trade universe (no MEP/finishes).
+- Embedding backbone isn't yet in Core ML format (see above).
+
+See `NOTES.md` for the full write-up and `TODO.md` for task-by-task status.
